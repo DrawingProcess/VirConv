@@ -146,7 +146,6 @@ def layer_voxel_discard(sparse_t, rat=0.15):
     sparse_t = replace_feature(sparse_t, sparse_t.features[randoms])
     sparse_t.indices = sparse_t.indices[randoms]
 
-
 class NRConvBlock(nn.Module):
     """
     convolve the voxel features in both 3D and 2D space.
@@ -224,7 +223,22 @@ class NRConvBlock(nn.Module):
         d2_feat1 = self.d2_conv1(d2_sp_tensor1)
         d2_feat2 = self.d2_conv2(d2_feat1)
 
-        d3_feat3 = replace_feature(d3_feat2, torch.cat([d3_feat2.features, d2_feat2.features], -1))
+        # # default
+        # d3_feat3 = replace_feature(d3_feat2, torch.cat([d3_feat2.features, d2_feat2.features], -1))
+        
+        # # only 2d
+        empty = d3_feat2
+        empty_tensor = torch.ones(d3_feat2.features.shape).to("cuda:0")
+        emptySp = empty_tensor.to_sparse(1)._values()
+        empty = empty.replace_feature(emptySp) # Tensor to 
+        d3_feat3 = replace_feature(d3_feat2, torch.cat([d2_feat2.features, empty.features], -1))
+
+        # # only 3d
+        # empty = d2_feat2
+        # empty_tensor = torch.ones(d2_feat2.features.shape).to("cuda:0")
+        # emptySp = empty_tensor.to_sparse(1)._values()
+        # empty = empty.replace_feature(emptySp) # Tensor to 
+        # d3_feat3 = replace_feature(d3_feat2, torch.cat([d3_feat2.features, empty.features], -1))
 
         return d3_feat3
 
