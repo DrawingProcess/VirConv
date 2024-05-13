@@ -223,21 +223,15 @@ class NRConvBlock(nn.Module):
         d2_feat1 = self.d2_conv1(d2_sp_tensor1)
         d2_feat2 = self.d2_conv2(d2_feat1)
 
-<<<<<<< HEAD
         # # default
-        # d3_feat3 = replace_feature(d3_feat2, torch.cat([d3_feat2.features, d2_feat2.features], -1))
+        d3_feat3 = replace_feature(d3_feat2, torch.cat([d3_feat2.features, d2_feat2.features], -1))
         
         # # only 2d
-=======
-        #d3_feat3 = replace_feature(d3_feat2, torch.cat([d3_feat2.features, d2_feat2.features], -1))
-        
-        # only 2d
->>>>>>> 9d64ea8def8235b8e5903fef02ab33f06f932818
-        empty = d3_feat2
-        empty_tensor = torch.ones(d3_feat2.features.shape).to("cuda:0")
-        emptySp = empty_tensor.to_sparse(1)._values()
-        empty = empty.replace_feature(emptySp) # Tensor to 
-        d3_feat3 = replace_feature(d3_feat2, torch.cat([d2_feat2.features, empty.features], -1))
+        # empty = d3_feat2
+        # empty_tensor = torch.ones(d3_feat2.features.shape).to("cuda:0")
+        # emptySp = empty_tensor.to_sparse(1)._values()
+        # empty = empty.replace_feature(emptySp) # Tensor to 
+        # d3_feat3 = replace_feature(d3_feat2, torch.cat([d2_feat2.features, empty.features], -1))
 
         # # only 3d
         # empty = d2_feat2

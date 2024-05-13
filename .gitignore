@@ -2,6 +2,8 @@ tools/results/
 logs/
 output/
 tools/PENet/pe.pth.tar
+ckpt/
+.DS_Store
 
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,python
 # Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,python
