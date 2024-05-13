@@ -1,9 +1,13 @@
 #!/usr/bin/bash
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 #SBATCH -J VirConv-train-VirConv-S-only3d-Tepoch40
 =======
 #SBATCH -J VirConv-train-VirConv-T-backbone
+>>>>>>> Stashed changes
+=======
+#SBATCH -J VirConv-train-VirConv-S-only3d-Tepoch40
 >>>>>>> Stashed changes
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-gpu=8
@@ -44,6 +48,7 @@ python3 train.py --cfg_file cfgs/models/kitti/VirConv-T.yaml --extra_tag t2 --pr
 # python3 test.py --cfg_file cfgs/models/kitti/VirConv-S.yaml --extra_tag only2d --ckpt ../output/models/kitti/VirConv-S/only3d/ckpt/checkpoint_epoch_5.pth
 # python3 test.py --cfg_file cfgs/models/kitti/VirConv-T.yaml --extra_tag t2 --ckpt ../ckpt/VirConv-T2.pth
 
-# python demo.py --cfg_file cfgs/models/kitti/VirConv-T.yaml   --ckpt ../output/models/kitti/VirConv-T/default/ckpt/checkpoint_epoch_50.pth    --data_path ../../../data/kitti_ori/testing/velodyne/000008.bin
-
+# python demo.py --cfg_file cfgs/models/kitti/VirConv-T.yaml --ckpt ../output/models/kitti/VirConv-T/default/ckpt/checkpoint_epoch_50.pth    --data_path ../../../data/kitti_ori/testing/velodyne/000008.bin
+# python demo.py --cfg_file cfgs/models/kitti/VirConv-T.yaml --ckpt ../ckpt/VirConv-T2.pth --data_path ~/Dataset/Fog-kitti/velodyne/000008.bin
+# python demo.py --cfg_file cfgs/models/kitti/VirConv-T.yaml --ckpt ../ckpt/VirConv-T2.pth --data_path ~/Dataset/Fog-kitti/velodyne
 exit 0
