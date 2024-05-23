@@ -50,6 +50,20 @@ def eval_one_epoch(cfg, model, dataloader, epoch_id, logger, dist_test=False, sa
         )
     model.eval()
 
+    # dynamic quantization
+    # model_dynamic_quantized = torch.quantization.quantize_dynamic(
+    #     model, qconfig_spec={torch.nn.Linear}, dtype=torch.qint8
+    # )
+    # model_dynamic_quantized.eval()
+
+    # # static quantization
+    # backend = "x86"
+    # model.qconfig = torch.quantization.get_default_qconfig(backend)
+    # model_static_quantized = torch.quantization.prepare(model, inplace=False)
+    # model_static_quantized = torch.quantization.convert(model_static_quantized, inplace=False)
+    # model_static_quantized.eval()
+    # model = model_static_quantized
+
     if cfg.LOCAL_RANK == 0:
         progress_bar = tqdm.tqdm(total=len(dataloader), leave=True, desc='eval', dynamic_ncols=True)
     start_time = time.time()

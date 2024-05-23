@@ -1,0 +1,8 @@
+python kitti-object-eval-python/evaluate.py evaluate --label_path=../../data/kitti_ori/training/label_2/ --result_path=output/models/kitti/VirConv-T/default/eval/epoch_40/val/default/result.pkl --label_split_file=../../data/kitti_ori/ImageSets/val.txt --current_class=0 --coco=False
+
+cd tools
+# python3 train.py --cfg_file cfgs/models/kitti/VirConv-T.yaml --extra_tag only2d
+# python3 test.py --cfg_file cfgs/models/kitti/VirConv-L.yaml --extra_tag default --ckpt ../output/models/kitti/VirConv-L/default/ckpt/checkpoint_epoch_40.pth
+
+cd RepDistiller
+python train_student.py --path_t ../save/models/resnet32x4_vanilla/ckpt_epoch_240.pth --distill crd --model_s resnet8x4 -a 1 -b 0.8 --trial 1 

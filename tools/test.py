@@ -122,6 +122,12 @@ def repeat_eval_ckpt(model, test_loader, args, eval_output_dir, logger, ckpt_dir
             print('%s' % cur_epoch_id, file=f)
         logger.info('Epoch %s has been evaluated' % cur_epoch_id)
 
+def print_size_of_model(model, label=""):
+    torch.save(model.state_dict(), "temp.p")
+    size=os.path.getsize("temp.p")
+    print("model: ",label,' \t','Size (KB):', size/1e3)
+    os.remove('temp.p')
+    return size
 
 def main():
     args, cfg = parse_config()
@@ -180,6 +186,24 @@ def main():
     )
 
     model = build_network(model_cfg=cfg.MODEL, num_class=len(cfg.CLASS_NAMES), dataset=test_set)
+
+    logger.info("Model parameter: %d" % sum(p.numel() for p in model.parameters() if p.requires_grad))
+    logger.info("Model size: %d" % print_size_of_model(model,"fp32"))
+
+    input_parameter = next(model.parameters())
+    print(tuple(input_parameter.size()))
+
+    # model = torch.quantization.quantize_dynamic(
+    #     model_float,  # the original model
+    #     {torch.nn.Linear, torch.nn.BatchNorm1d, torch.nn.ReLU,
+    #      torch.nn.Conv2d, torch.nn.BatchNorm2d},  # a set of layers to dynamically quantize
+    #     dtype=torch.qint8)  # the target dtype for quantized weights
+
+    # # compare the sizes
+    # f = print_size_of_model(model_float,"fp32")
+    # q = print_size_of_model(model,"int8")
+    # print("{0:.2f} times smaller".format(f/q))
+    
     with torch.no_grad():
         if args.eval_all:
             repeat_eval_ckpt(model, test_loader, args, eval_output_dir, logger, ckpt_dir, dist_test=dist_test)

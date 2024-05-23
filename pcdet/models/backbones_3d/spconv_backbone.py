@@ -242,6 +242,102 @@ class NRConvBlock(nn.Module):
 
         return d3_feat3
 
+class NRConvBlockReduce(nn.Module):
+    """
+    convolve the voxel features in both 3D and 2D space.
+    """
+
+    def __init__(self, input_c=16, output_c=16, stride=1, padding=1, indice_key='vir1', conv_depth=False):
+        super(NRConvBlockReduce, self).__init__()
+        self.stride = stride
+        block = post_act_block
+        block2d = post_act_block2d
+        norm_fn = partial(nn.BatchNorm1d, eps=1e-3, momentum=0.01)
+        self.conv_depth = conv_depth
+
+        if self.stride > 1:
+            self.down_layer = block(input_c,
+                                    output_c,
+                                    3,
+                                    norm_fn=norm_fn,
+                                    stride=stride,
+                                    padding=padding,
+                                    indice_key=('sp' + indice_key),
+                                    conv_type='spconv')
+        c1 = input_c
+
+        if self.stride > 1:
+            c1 = output_c
+        if self.conv_depth:
+            c1 += 4
+
+        c2 = output_c
+
+        self.d3_conv1 = block(c1,
+                              c2 // 2,
+                              3,
+                              norm_fn=norm_fn,
+                              padding=1,
+                              indice_key=('subm1' + indice_key))
+        self.d2_conv1 = block2d(c2 // 2,
+                                c2 // 2,
+                                3,
+                                norm_fn=norm_fn,
+                                padding=1,
+                                indice_key=('subm3' + indice_key))
+
+        # self.d3_conv2 = block(c2 // 2,
+        #                       c2 // 2,
+        #                       3,
+        #                       norm_fn=norm_fn,
+        #                       padding=1,
+        #                       indice_key=('subm2' + indice_key))
+        # self.d2_conv2 = block2d(c2 // 2,
+        #                         c2 // 2,
+        #                         3,
+        #                         norm_fn=norm_fn,
+        #                         padding=1,
+        #                         indice_key=('subm4' + indice_key))
+
+    def forward(self, sp_tensor, batch_size, calib, stride, x_trans_train, trans_param):
+
+        if self.stride > 1:
+            sp_tensor = self.down_layer(sp_tensor)
+
+        d3_feat1 = self.d3_conv1(sp_tensor)
+        # d3_feat2 = self.d3_conv2(d3_feat1)
+
+        uv_coords, depth = index2uv(d3_feat1.indices, batch_size, calib, stride, x_trans_train, trans_param)
+        # N*3,N*1
+        d2_sp_tensor1 = spconv.SparseConvTensor(
+            features=d3_feat1.features,
+            indices=uv_coords.int(),
+            spatial_shape=[1600, 600],
+            batch_size=batch_size
+        )
+
+        d2_feat1 = self.d2_conv1(d2_sp_tensor1)
+        # d2_feat2 = self.d2_conv2(d2_feat1)
+
+        # # default
+        d3_feat3 = replace_feature(d3_feat1, torch.cat([d3_feat1.features, d2_feat1.features], -1))
+        
+        # # only 2d
+        # empty = d3_feat2
+        # empty_tensor = torch.ones(d3_feat2.features.shape).to("cuda:0")
+        # emptySp = empty_tensor.to_sparse(1)._values()
+        # empty = empty.replace_feature(emptySp) # Tensor to 
+        # d3_feat3 = replace_feature(d3_feat2, torch.cat([d2_feat2.features, empty.features], -1))
+
+        # # only 3d
+        # empty = d2_feat2
+        # empty_tensor = torch.ones(d2_feat2.features.shape).to("cuda:0")
+        # emptySp = empty_tensor.to_sparse(1)._values()
+        # empty = empty.replace_feature(emptySp) # Tensor to 
+        # d3_feat3 = replace_feature(d3_feat2, torch.cat([d3_feat2.features, empty.features], -1))
+
+        return d3_feat3
+
 
 class VirConv8x(nn.Module):
     def __init__(self, model_cfg, input_channels, grid_size,  **kwargs):

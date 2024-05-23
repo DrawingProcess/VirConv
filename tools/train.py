@@ -53,6 +53,13 @@ def parse_config():
 
     return args, cfg
 
+def print_size_of_model(model, label=""):
+    torch.save(model.state_dict(), "temp.p")
+    size=os.path.getsize("temp.p")
+    print("model: ",label,' \t','Size (KB):', size/1e3)
+    os.remove('temp.p')
+    return size
+
 def main():
     args, cfg = parse_config()
 
@@ -117,6 +124,9 @@ def main():
     model.cuda()
 
     optimizer = build_optimizer(model, cfg.OPTIMIZATION)
+
+    logger.info("Model parameter: %d" % sum(p.numel() for p in model.parameters() if p.requires_grad))
+    logger.info("Model size: %d" % print_size_of_model(model,"fp32"))
 
     # load checkpoint if it is possible
     start_epoch = it = 0

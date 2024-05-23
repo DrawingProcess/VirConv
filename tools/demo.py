@@ -90,8 +90,15 @@ def main():
     model.load_params_from_file(filename=args.ckpt, logger=logger, to_cpu=True)
     model.cuda()
     model.eval()
+
+    timings = np.zeros(len(demo_dataset))
+
+    start_event = torch.cuda.Event(enable_timing=True)
+    end_event = torch.cuda.Event(enable_timing=True)
+
     with torch.no_grad():
         for idx, data_dict in enumerate(demo_dataset):
+            start_event.record()
             logger.info(f'Visualized sample index: \t{idx + 1}')
             data_dict = demo_dataset.collate_batch([data_dict])
             load_data_to_gpu(data_dict)
@@ -104,6 +111,15 @@ def main():
 
             if not OPEN3D_FLAG:
                 mlab.show(stop=True)
+
+            end_event.record()
+
+            torch.cuda.synchronize()  # GPU 연산이 완료될 때까지 대기
+
+            curr_time = start_event.elapsed_time(end_event)
+            timings[idx] = curr_time
+    
+    print(f"Elapsed time on GPU: {np.mean(timings) * 1e-3} seconds per sample")  # milliseconds to seconds
 
     logger.info('Demo done.')
 
