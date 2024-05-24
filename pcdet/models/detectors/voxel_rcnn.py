@@ -5,13 +5,13 @@ class VoxelRCNN(Detector3DTemplate):
         super().__init__(model_cfg=model_cfg, num_class=num_class, dataset=dataset)
         self.module_list = self.build_networks()
 
-    def forward(self, batch_dict):
+    def forward(self, batch_dict, model_t=None):
         for cur_module in self.module_list:
             batch_dict = cur_module(batch_dict)
 
         if self.training:
 
-            loss, tb_dict, disp_dict = self.get_training_loss()
+            loss, tb_dict, disp_dict = self.get_training_loss(model_t)
 
             ret_dict = {
                 'loss': loss
@@ -21,10 +21,10 @@ class VoxelRCNN(Detector3DTemplate):
             pred_dicts, recall_dicts, = self.post_processing(batch_dict)
             return pred_dicts, recall_dicts, batch_dict
 
-    def get_training_loss(self):
+    def get_training_loss(self, model_t=None):
         disp_dict = {}
-        loss_rpn, tb_dict = self.dense_head.get_loss()
-        loss_rcnn, tb_dict = self.roi_head.get_loss(tb_dict)#
+        loss_rpn, tb_dict = self.dense_head.get_loss(model_t)
+        loss_rcnn, tb_dict = self.roi_head.get_loss(tb_dict)
 
         loss =  loss_rpn + loss_rcnn
         return loss, tb_dict, disp_dict

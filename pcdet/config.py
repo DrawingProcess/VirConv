@@ -83,3 +83,7 @@ def cfg_from_yaml_file(cfg_file, config):
 cfg = EasyDict()
 cfg.ROOT_DIR = (Path(__file__).resolve().parent / '../').resolve()
 cfg.LOCAL_RANK = 0
+
+cfg_t = EasyDict()
+cfg_t.ROOT_DIR = (Path(__file__).resolve().parent / '../').resolve()
+cfg_t.LOCAL_RANK = 0

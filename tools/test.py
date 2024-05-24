@@ -8,7 +8,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 
 from eval_utils import eval_utils
 from pcdet.config import cfg, cfg_from_list, cfg_from_yaml_file, log_config_to_file
@@ -190,8 +190,8 @@ def main():
     logger.info("Model parameter: %d" % sum(p.numel() for p in model.parameters() if p.requires_grad))
     logger.info("Model size: %d" % print_size_of_model(model,"fp32"))
 
-    input_parameter = next(model.parameters())
-    print(tuple(input_parameter.size()))
+    # input_parameter = next(model.parameters())
+    # print(tuple(input_parameter.size()))
 
     # model = torch.quantization.quantize_dynamic(
     #     model_float,  # the original model

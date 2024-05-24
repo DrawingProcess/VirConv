@@ -175,7 +175,7 @@ class AnchorHeadTemplate(nn.Module):
         )
         return targets_dict
 
-    def get_cls_layer_loss(self):
+    def get_cls_layer_loss(self, model_t):
         cls_preds = self.forward_ret_dict['cls_preds']
         box_cls_labels = self.forward_ret_dict['box_cls_labels']
 
@@ -206,6 +206,12 @@ class AnchorHeadTemplate(nn.Module):
         cls_preds = cls_preds.view(batch_size, -1, self.num_class)
         one_hot_targets = one_hot_targets[..., 1:]
         cls_loss_src = self.cls_loss_func(cls_preds, one_hot_targets, weights=cls_weights)  # [N, M]
+
+        if model_t is not None:
+            cls_preds_t = model_t.dense_head.forward_ret_dict['cls_preds']
+            cls_loss_src = self.cls_loss_func(cls_preds, one_hot_targets, weights=cls_weights)  # [N, M]
+            print("cls_preds_t: ", cls_preds_t)
+
         cls_loss = cls_loss_src.sum() / batch_size
 
         cls_loss = cls_loss * self.model_cfg.LOSS_CONFIG.LOSS_WEIGHTS['cls_weight']
@@ -239,7 +245,7 @@ class AnchorHeadTemplate(nn.Module):
             dir_cls_targets = dir_targets
         return dir_cls_targets
 
-    def get_box_reg_layer_loss(self):
+    def get_box_reg_layer_loss(self, model_t):
         box_preds = self.forward_ret_dict['box_preds']
         box_dir_cls_preds = self.forward_ret_dict.get('dir_cls_preds', None)
         box_reg_targets = self.forward_ret_dict['box_reg_targets']
@@ -317,9 +323,9 @@ class AnchorHeadTemplate(nn.Module):
         loss = 2*loss/(positives.sum()+1)
         return loss
 
-    def get_loss(self):
-        cls_loss, tb_dict = self.get_cls_layer_loss()
-        box_loss, tb_dict_box = self.get_box_reg_layer_loss()
+    def get_loss(self, model_t=None):
+        cls_loss, tb_dict = self.get_cls_layer_loss(model_t)
+        box_loss, tb_dict_box = self.get_box_reg_layer_loss(model_t)
 
         tb_dict.update(tb_dict_box)
 

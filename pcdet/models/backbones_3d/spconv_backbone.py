@@ -400,10 +400,10 @@ class VirConv8x(nn.Module):
             nn.ReLU(),
         )
         if self.model_cfg.get('MM', False):
-            self.vir_conv1 = NRConvBlock(input_channels, num_filters[0], stride=1, indice_key='vir1')
-            self.vir_conv2 = NRConvBlock(num_filters[0], num_filters[1], stride=2, indice_key='vir2')
-            self.vir_conv3 = NRConvBlock(num_filters[1], num_filters[2], stride=2, indice_key='vir3')
-            self.vir_conv4 = NRConvBlock(num_filters[2], num_filters[3], stride=2, padding=(0, 1, 1),
+            self.vir_conv1 = NRConvBlockReduce(input_channels, num_filters[0], stride=1, indice_key='vir1')
+            self.vir_conv2 = NRConvBlockReduce(num_filters[0], num_filters[1], stride=2, indice_key='vir2')
+            self.vir_conv3 = NRConvBlockReduce(num_filters[1], num_filters[2], stride=2, indice_key='vir3')
+            self.vir_conv4 = NRConvBlockReduce(num_filters[2], num_filters[3], stride=2, padding=(0, 1, 1),
                                           indice_key='vir4')
 
         self.num_point_features = self.out_features

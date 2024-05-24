@@ -9,7 +9,7 @@ import torch.distributed as dist
 import torch.nn as nn
 from tensorboardX import SummaryWriter
 
-from pcdet.config import cfg, cfg_from_list, cfg_from_yaml_file, log_config_to_file
+from pcdet.config import cfg_t, cfg, cfg_from_list, cfg_from_yaml_file, log_config_to_file
 from pcdet.datasets import build_dataloader
 from pcdet.models import build_network, model_fn_decorator
 from pcdet.utils import common_utils
@@ -21,12 +21,14 @@ warnings.filterwarnings("ignore")
 def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
     parser.add_argument('--cfg_file', type=str, default="cfgs/models/kitti/VirConv-T.yaml", help='specify the config for training')
+    parser.add_argument('--cfg_file_t', type=str, default="cfgs/models/kitti/VirConv-T.yaml", help='specify the config for training')
     parser.add_argument('--batch_size', type=int, default=None, required=False, help='batch size for training')
     parser.add_argument('--epochs', type=int, default=None, required=False, help='number of epochs to train for')
     parser.add_argument('--workers', type=int, default=0, help='number of workers for dataloader')
     parser.add_argument('--extra_tag', type=str, default='default', help='extra tag for this experiment')
     parser.add_argument('--ckpt', type=str, default=None, help='checkpoint to start from')
     parser.add_argument('--pretrained_model', type=str, default=None, help='pretrained_model')
+    parser.add_argument('--teacher_model', type=str, default=None, help='teacher_model')
     parser.add_argument('--launcher', choices=['none', 'pytorch', 'slurm'], default='none')
     parser.add_argument('--tcp_port', type=int, default=23271, help='tcp port for distrbuted training')
     parser.add_argument('--sync_bn', action='store_true', default=False, help='whether to use sync bn')
@@ -121,24 +123,14 @@ def main():
     model = build_network(model_cfg=cfg.MODEL, num_class=len(cfg.CLASS_NAMES), dataset=train_set)
     if args.sync_bn:
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-
-    # # layer pruning
-    # module_param_counts=get_module_param_count(model)
-
-    # module=model.backbone_3d
-    # import torch.nn.utils.prune as prune
-    # prune.ln_structured(module, name="weight",amount=0.5,n=2,dim=0)
-
-    # print(list(module.named_parameters()))
-    # for name, count in module_param_counts.items():
-    #     print(f"Module: {name}, Parameter Count: {count}")
-    # print(model)
-
-    # print_size_of_model(model)
-    # if args.sync_bn:
-    #     model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-
     model.cuda()
+
+    cfg_from_yaml_file(args.cfg_file_t, cfg_t)
+    model_t = build_network(model_cfg=cfg.MODEL, num_class=len(cfg.CLASS_NAMES), dataset=train_set)
+    if args.sync_bn:
+        model_t = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model_t)
+    model_t.cuda()
+
     optimizer = build_optimizer(model, cfg.OPTIMIZATION)
 
     logger.info("Model parameter: %d" % sum(p.numel() for p in model.parameters() if p.requires_grad))
@@ -147,8 +139,11 @@ def main():
     # load checkpoint if it is possible
     start_epoch = it = 0
     last_epoch = -1
+
     if args.pretrained_model is not None:
         model.load_params_from_file(filename=args.pretrained_model, to_cpu=dist, logger=logger)
+    if args.teacher_model is not None:
+        model_t.load_params_from_file(filename=args.teacher_model, to_cpu=dist, logger=logger)
 
     if args.ckpt is not None:
         it, start_epoch = model.load_params_with_optimizer(args.ckpt, to_cpu=dist, optimizer=optimizer, logger=logger)
@@ -163,6 +158,8 @@ def main():
             last_epoch = start_epoch + 1
 
     model.train()  # before wrap to DistributedDataParallel to support fixed some parameters
+    model_t.train()
+
     if dist_train:
         model = nn.parallel.DistributedDataParallel(model, device_ids=[cfg.LOCAL_RANK % torch.cuda.device_count()])#,find_unused_parameters=True
     logger.info(model)
@@ -192,7 +189,8 @@ def main():
         lr_warmup_scheduler=lr_warmup_scheduler,
         ckpt_save_interval=args.ckpt_save_interval,
         max_ckpt_save_num=args.max_ckpt_save_num,
-        merge_all_iters_to_one_epoch=args.merge_all_iters_to_one_epoch
+        merge_all_iters_to_one_epoch=args.merge_all_iters_to_one_epoch,
+        model_t=model_t
     )
 
     logger.info('**********************End training %s/%s(%s)**********************\n\n\n'

@@ -2,7 +2,7 @@ python kitti-object-eval-python/evaluate.py evaluate --label_path=../../data/kit
 
 cd tools
 # python3 train.py --cfg_file cfgs/models/kitti/VirConv-T.yaml --extra_tag only2d
+python3 train_student.py --cfg_file cfgs/models/kitti/VirConv-L.yaml --extra_tag distillT2L --teacher_model ../ckpt/VirConv-T2.pth
 # python3 test.py --cfg_file cfgs/models/kitti/VirConv-L.yaml --extra_tag default --ckpt ../output/models/kitti/VirConv-L/default/ckpt/checkpoint_epoch_40.pth
 
-cd RepDistiller
-python train_student.py --path_t ../save/models/resnet32x4_vanilla/ckpt_epoch_240.pth --distill crd --model_s resnet8x4 -a 1 -b 0.8 --trial 1 
+python train_student.py --cfg_file_t cfgs/models/kitti/VirConv-T.yaml --cfg_file_s cfgs/models/kitti/VirConv-S.yaml --path_t ../ckpt/VirConv-T2.pth --path_s ../ckpt/VirConv-L2.pth --distill kd -a 1 -b 0.8 --trial 1 

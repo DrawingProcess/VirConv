@@ -73,6 +73,19 @@ class Detector3DTemplate(nn.Module):
             voxel_size=model_info_dict['voxel_size'],
             point_cloud_range=model_info_dict['point_cloud_range']
         )
+
+        # dynamic quantization
+        # import torch.quantization
+        # backbone_3d_module=torch.quantization.quantize_dynamic(backbone_3d_module,{torch.nn.Linear},dtype=torch.qint8)
+
+        # static quantization
+
+        # # QAT
+        # import torch.quantization
+        # backbone_3d_module.qconfig=torch.quantization.get_default_qat_qconfig('fbgemm')
+        # torch.quantization.prepare(backbone_3d_module,inplace=True)
+        # torch.quantization.convert(backbone_3d_module,inplace=True)
+
         model_info_dict['module_list'].append(backbone_3d_module)
         model_info_dict['num_point_features'] = backbone_3d_module.num_point_features
         return backbone_3d_module, model_info_dict
@@ -100,6 +113,11 @@ class Detector3DTemplate(nn.Module):
             model_cfg=self.model_cfg.BACKBONE_2D,
             input_channels=chan,
         )
+
+        # # dynamic quantization backbone_2d
+        # import torch.quantization
+        # backbone_2d_module=torch.quantization.quantize_dynamic(backbone_2d_module,{torch.nn.Linear},dtype=torch.qint8)
+
         model_info_dict['module_list'].append(backbone_2d_module)
         model_info_dict['num_bev_features_post'] = backbone_2d_module.num_bev_features_post
         return backbone_2d_module, model_info_dict
