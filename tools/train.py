@@ -121,24 +121,8 @@ def main():
     model = build_network(model_cfg=cfg.MODEL, num_class=len(cfg.CLASS_NAMES), dataset=train_set)
     if args.sync_bn:
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-
-    # # layer pruning
-    # module_param_counts=get_module_param_count(model)
-
-    # module=model.backbone_3d
-    # import torch.nn.utils.prune as prune
-    # prune.ln_structured(module, name="weight",amount=0.5,n=2,dim=0)
-
-    # print(list(module.named_parameters()))
-    # for name, count in module_param_counts.items():
-    #     print(f"Module: {name}, Parameter Count: {count}")
-    # print(model)
-
-    # print_size_of_model(model)
-    # if args.sync_bn:
-    #     model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-
     model.cuda()
+
     optimizer = build_optimizer(model, cfg.OPTIMIZATION)
 
     logger.info("Model parameter: %d" % sum(p.numel() for p in model.parameters() if p.requires_grad))
@@ -207,6 +191,78 @@ def main():
         batch_size=args.batch_size,
         dist=dist_train, workers=args.workers, logger=logger, training=False
     )
+
+    # # TODO: calculate pruning index
+    # if cfg.get('MEA_FILE'):
+    #     gap = np.loadtxt(cfg.MEA_FILE)
+    #     gap = torch.tensor(gap).cuda()
+    #     if gap.dim() > 1:
+    #         gap = gap.sum(0)
+
+    #     gap_v, gap_index = torch.sort(gap, descending=True)
+
+    #     rate = cfg.PRUNING_RATE
+    #     retain_index_tmp = gap_index[:np.int(rate * len(gap))]
+
+    #     # 3D Conv
+    #     # num_filter: [16, 16, 32, 64, 64, 128]
+    #     # num_layer: [1, 1, 3, 3, 3, 1]
+    #     # 2D Conv
+    #     # num_filter: [128, 256, 256, 256]
+    #     # num_layer: [6, 6, 1, 1]
+
+    #     retain_index = {
+    #         '3D_Conv': {},
+    #         '3D_Conv_num': torch.Tensor(12),
+    #         '2D_Conv': {},
+    #         '2D_Conv_num': torch.Tensor(14),
+    #     }
+
+    #     # num_filter = [16, 16, 32, 32, 32, 64, 64, 64, 64, 64, 64, 128]
+    #     filter_idx_3d = [0, 16, 32, 64, 96, 128, 192, 256, 320, 384, 448, 512, 640]
+    #     retain_3d_num = 0
+    #     for layer_c in range(len(filter_idx_3d) - 1):
+    #         idx_cur_layer = ((retain_index_tmp < filter_idx_3d[layer_c + 1]) &
+    #                          (retain_index_tmp >= filter_idx_3d[layer_c])).nonzero().squeeze(-1)
+    #         if idx_cur_layer.dim() > 0:
+    #             retain_index['3D_Conv'][layer_c] = retain_index_tmp[idx_cur_layer] - filter_idx_3d[layer_c]
+    #             retain_3d_num += len(retain_index['3D_Conv'][layer_c])
+    #             retain_index['3D_Conv_num'][layer_c] = len(retain_index['3D_Conv'][layer_c])
+    #         else:
+    #             assert False
+
+    #     # num_filter = [128, 128, 128, 128, 128, 128, 256, 256, 256, 256, 256, 256, 256, 256]
+    #     filter_idx_2d = [i + 640 for i in [0, 128, 256, 384, 512, 640, 768, 1024, 1280, 1536, 1792, 2048, 2304, 2560, 2816]]
+    #     retain_2d_num = 0
+    #     for layer_c in range(len(filter_idx_2d) - 1):
+    #         idx_cur_layer = ((retain_index_tmp < filter_idx_2d[layer_c + 1]) &
+    #                          (retain_index_tmp >= filter_idx_2d[layer_c])).nonzero().squeeze(-1)
+    #         if idx_cur_layer.dim() > 0:
+    #             retain_index['2D_Conv'][layer_c] = retain_index_tmp[idx_cur_layer] - filter_idx_2d[layer_c]
+    #             retain_2d_num += len(retain_index['2D_Conv'][layer_c])
+    #             retain_index['2D_Conv_num'][layer_c] = len(retain_index['2D_Conv'][layer_c])
+    #         else:
+    #             assert False
+
+    #     print('*' * 20)
+    #     print(
+    #         '\n pruned_filter_num: {} / {} ({}), pruned_3D_conv_num: {} / {} ({}), pruned_2D_conv_num: {} / {} ({}). \n'.format(
+    #             (filter_idx_2d[-1] - (retain_3d_num + retain_2d_num)), filter_idx_2d[-1],
+    #             ((filter_idx_2d[-1] - (retain_3d_num + retain_2d_num)) / filter_idx_2d[-1]),
+    #             (filter_idx_3d[-1] - retain_3d_num), filter_idx_3d[-1],
+    #             ((filter_idx_3d[-1] - retain_3d_num) / filter_idx_3d[-1]),
+    #             (filter_idx_2d[-1] - filter_idx_3d[-1] - retain_2d_num), (filter_idx_2d[-1] - filter_idx_3d[-1]),
+    #             ((filter_idx_2d[-1] - filter_idx_3d[-1] - retain_2d_num) / (filter_idx_2d[-1] - filter_idx_3d[-1])),
+    #         ))
+    #     print('*' * 20)
+    #     # print(retain_index['3D_Conv_num'].int().tolist())
+
+    #     cfg.MODEL.BACKBONE_3D.NUM_FILTERS = retain_index['3D_Conv_num'].int().tolist()
+    #     cfg.MODEL.BACKBONE_3D.NAME = 'VoxelBackBone8x_flexible'
+    #     cfg.MODEL.BACKBONE_2D.IN_CHANNEL = 2 * cfg.MODEL.BACKBONE_3D.NUM_FILTERS[-1]
+    #     cfg.MODEL.BACKBONE_2D.NAME = 'BaseBEVBackbone_flexible'
+    #     cfg.MODEL.BACKBONE_2D.NUM_FILTERS = retain_index['2D_Conv_num'].int().tolist()
+
     eval_output_dir = output_dir / 'eval' / ('eval_with_train')
     eval_output_dir.mkdir(parents=True, exist_ok=True)
     args.start_epoch = max(args.epochs - 10, 0)  # Only evaluate the last 10 epochs

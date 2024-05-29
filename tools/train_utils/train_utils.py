@@ -11,8 +11,7 @@ import pcdet.datasets.augmentor.augmentor_utils as uti
 
 
 def train_one_epoch(model, optimizer, train_loader, model_func, lr_scheduler, accumulated_iter, optim_cfg,
-                    rank, tbar, total_it_each_epoch, dataloader_iter, tb_log=None, leave_pbar=False,
-                    model_t=None):
+                    rank, tbar, total_it_each_epoch, dataloader_iter, tb_log=None, leave_pbar=False):
     if total_it_each_epoch == len(train_loader):
         dataloader_iter = iter(train_loader)
 
@@ -42,7 +41,7 @@ def train_one_epoch(model, optimizer, train_loader, model_func, lr_scheduler, ac
 
         model.train()
 
-        loss, tb_dict, disp_dict = model_func(model, batch, model_t=model_t)
+        loss, tb_dict, disp_dict = model_func(model, batch)
         loss = loss/accus
         
         loss.backward()
@@ -74,8 +73,7 @@ def train_one_epoch(model, optimizer, train_loader, model_func, lr_scheduler, ac
 def train_model(model, optimizer, train_loader, model_func, lr_scheduler, optim_cfg,
                 start_epoch, total_epochs, start_iter, rank, tb_log, ckpt_save_dir, train_sampler=None,
                 lr_warmup_scheduler=None, ckpt_save_interval=1, max_ckpt_save_num=50,
-                merge_all_iters_to_one_epoch=False,
-                model_t=None):
+                merge_all_iters_to_one_epoch=False):
     accumulated_iter = start_iter
     with tqdm.trange(start_epoch, total_epochs, desc='epochs', dynamic_ncols=True, leave=(rank == 0)) as tbar:
         total_it_each_epoch = len(train_loader)
@@ -101,8 +99,7 @@ def train_model(model, optimizer, train_loader, model_func, lr_scheduler, optim_
                 rank=rank, tbar=tbar, tb_log=tb_log,
                 leave_pbar=(cur_epoch + 1 == total_epochs),
                 total_it_each_epoch=total_it_each_epoch,
-                dataloader_iter=dataloader_iter,
-                model_t=model_t
+                dataloader_iter=dataloader_iter
             )
 
             # save trained model
